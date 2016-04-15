@@ -1,8 +1,11 @@
 // This is a template for a Node.js scraper on morph.io (https://morph.io)
 
-var cheerio = require("cheerio");
+//var cheerio = require("cheerio");
 var request = require("request");
 var sqlite3 = require("sqlite3").verbose();
+var http = require('http');
+
+var api_key = process.env.MORPH_API_KEY;
 
 function initDatabase(callback) {
 	// Set up sqlite database.
@@ -43,12 +46,12 @@ function run(db) {
 	// Use request to read in pages.
 	fetchPage("https://morph.io", function (body) {
 		// Use cheerio to find things in the page with css selectors.
-		var $ = cheerio.load(body);
-
-		var elements = $("div.media-body span.p-name").each(function () {
-			var value = $(this).text().trim();
-			updateRow(db, value);
-		});
+		
+		//var $ = cheerio.load(body);
+		//var elements = $("div.media-body span.p-name").each(function () {
+		//	var value = $(this).text().trim();
+		//	updateRow(db, value);
+		//});
 
 		readRows(db);
 
