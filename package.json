@@ -1,0 +1,7 @@
+{
+	"dependencies": {
+		"cheerio": "latest",
+		"request": "latest",
+		"sqlite3": "latest"
+	}
+}
