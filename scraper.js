@@ -121,7 +121,7 @@ function persist(db,res) {
 			if (p.synopses.short) desc = p.synopses.short;
 		}
 		prog.desc = desc;
-		prog.channel = p.master_brand.mid;
+		prog.channel = p.master_brand ? p.master_brand.mid : 'unknown';
 		prog.categories = '';
 		prog.thumbnail = 'http://ichef.bbci.co.uk/images/ic/150x84/'+p.pid+'.jpg';
 		prog.timeadded = Math.floor(new Date()/1000.0);
