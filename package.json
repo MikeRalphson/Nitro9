@@ -1,7 +1,6 @@
 {
-	"dependencies": {
-		"cheerio": "latest",
-		"request": "latest",
-		"sqlite3": "latest"
-	}
+  "dependencies": {
+    "bbcparse": "^1.0.0",
+    "sqlite3": "latest"
+  }
 }
