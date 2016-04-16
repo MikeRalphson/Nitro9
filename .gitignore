@@ -1,4 +1,5 @@
 # Ignore output of scraper
 data.sqlite
+Nitro9.sqlite
 
 node_modules

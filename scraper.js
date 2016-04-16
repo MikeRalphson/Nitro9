@@ -45,7 +45,8 @@ function initDatabase(callback) {
 	// Set up sqlite database.
 	var db = new sqlite3.Database("data.sqlite");
 	
-	var fields =['#index',
+	var fields = [
+		'#index',
 		'type',
 		'name',
 		'pid',
@@ -62,7 +63,8 @@ function initDatabase(callback) {
 		'thumbnail',
 		'timeadded',
 		'guidance',
-		'web'];
+		'web'
+	];
 
 	var fieldStr = '';
 	for (var i in fields) {
@@ -105,7 +107,7 @@ function persist(db,res) {
 		var p = res.items[i];
 		var prog = {};
 		prog["#index"] = index++;
-		prog.type = p.media_type == 'Audio' ? 'radio' : 'tv'; //TODO podcast
+		prog.type = p.media_type ? (p.media_type == 'Audio' ? 'radio' : 'tv') : 'unknown'; //TODO podcast?
 		prog.name = '';
 		if (p.ancestor_titles) prog.name = p.ancestor_titles[0].title;
 		prog.pid = p.pid;
@@ -123,7 +125,7 @@ function persist(db,res) {
 		prog.desc = desc;
 		prog.channel = p.master_brand ? p.master_brand.mid : 'unknown';
 		prog.categories = '';
-		prog.thumbnail = 'http://ichef.bbci.co.uk/images/ic/150x84/'+p.pid+'.jpg';
+		prog.thumbnail = 'http://ichef.bbci.co.uk/images/ic/160x90/'+p.pid+'.jpg';
 		prog.timeadded = Math.floor(new Date()/1000.0);
 		prog.guidance = p.has_guidance;
 		prog.web = 'http://www.bbc.co.uk/programmes/'+p.pid;
