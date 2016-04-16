@@ -1,6 +1,29 @@
 {
+  "name": "nitro9",
+  "version": "1.0.0",
+  "description": "BBC iPlayer available programmes via Nitro",
+  "main": "scraper.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MikeRalphson/Nitro9.git"
+  },
+  "keywords": [
+    "bbc",
+    "nitro",
+    "api",
+    "iplayer"
+  ],
+  "author": "Mike Ralphson",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/MikeRalphson/Nitro9/issues"
+  },
+  "homepage": "https://github.com/MikeRalphson/Nitro9#readme",
   "dependencies": {
-    "bbcparse": "^1.0.0",
+    "bbcparse": "^1.1.0",
     "sqlite3": "latest"
   }
 }

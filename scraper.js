@@ -1,8 +1,6 @@
 // This is a Node.js scraper on morph.io (https://morph.io)
 
 var sqlite3 = require("sqlite3").verbose();
-var http = require('http');
-var https = require('https');
 var api = require('bbcparse/nitroApi/api.js');
 var helper = require('bbcparse/apiHelper.js');
 var nitro = require('bbcparse/nitroCommon.js');

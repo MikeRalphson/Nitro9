@@ -4,7 +4,7 @@ A tool to index available programmes on the BBC iPlayer / radio-player for offli
 
 This is a scraper that runs on [Morph](https://morph.io). Please read [the Morph.io documentation](https://morph.io/documentation).
 
-It can also been run locally.
+It can also be run locally.
 
 Usage: `node scraper.js`
 
