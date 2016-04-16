@@ -4,9 +4,11 @@ A tool to index available programmes on the BBC iPlayer / radio-player for offli
 
 This is a scraper that runs on [Morph](https://morph.io). Please read [the Morph.io documentation](https://morph.io/documentation).
 
+It can also been run locally.
+
 Usage: `node scraper.js`
 
-Output is an sqlite3 database containing one table, "data".
+Output is an sqlite3 database containing one table, "data":
 
 ````javascript
 	var fields = [
@@ -27,6 +29,7 @@ Output is an sqlite3 database containing one table, "data".
 		'thumbnail',
 		'timeadded',
 		'guidance',
-		'web'
+		'web',
+		'vpids'
 	];
 ````

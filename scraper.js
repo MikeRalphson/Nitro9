@@ -1,6 +1,5 @@
-// This is a template for a Node.js scraper on morph.io (https://morph.io)
+// This is a Node.js scraper on morph.io (https://morph.io)
 
-//var request = require("request");
 var sqlite3 = require("sqlite3").verbose();
 var http = require('http');
 var https = require('https');
@@ -28,23 +27,10 @@ function iso8601durationToSeconds(input) {
 	return totalseconds;
 }
 
-function toArray(item) {
-	if (!(item instanceof Array)) {
-		var newitem = [];
-		if (item) {
-			newitem.push(item);
-		}
-		return newitem;
-	}
-	else {
-		return item;
-	}
-}
-
 function initDatabase(callback) {
 	// Set up sqlite database.
 	var db = new sqlite3.Database("data.sqlite");
-	
+
 	var fields = [
 		'#index',
 		'type',
@@ -63,7 +49,8 @@ function initDatabase(callback) {
 		'thumbnail',
 		'timeadded',
 		'guidance',
-		'web'
+		'web',
+		'vpids'
 	];
 
 	var fieldStr = '';
@@ -80,12 +67,11 @@ function initDatabase(callback) {
 
 function updateRow(db, prog) {
 	// Insert some data.
-	var statement = db.prepare("INSERT INTO data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+	var statement = db.prepare("INSERT INTO data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 	var value = [];
 	for (var i in prog) {
 		value.push(prog[i]);
 	}
-	//console.log(value);
 	statement.run(value);
 	statement.finalize();
 }
@@ -107,29 +93,68 @@ function persist(db,res) {
 		var p = res.items[i];
 		var prog = {};
 		prog["#index"] = index++;
-		prog.type = p.media_type ? (p.media_type == 'Audio' ? 'radio' : 'tv') : 'unknown'; //TODO podcast?
+		prog.type = p.media_type ? (p.media_type == 'Audio' ? 'radio' : 'tv') : 'unknown';
 		prog.name = '';
 		if (p.ancestor_titles) prog.name = p.ancestor_titles[0].title;
 		prog.pid = p.pid;
 		prog.available = p.updated_time;
 		prog.expires = Math.floor(new Date()/1000.0)+2419200;;
 		prog.episode = p.title;
-		prog.episodenum = '';
+		prog.episodenum = (p.episode_of && p.episode_of.position ? p.episode_of.position : '');
 		prog.seriesnum = '';
-		prog.versions = 'default'; //TODO
+		prog.versions = 'default';
 		prog.duration = iso8601durationToSeconds(p.available_versions.version[0].duration);
 		var desc = '';
 		if (p.synopses) {
-			if (p.synopses.short) desc = p.synopses.short;
+			if (p.synopses.short) desc = p.synopses.short
+			else if (p.synopses.medium) desc = p.synopses.medium
+			else if (p.synopses.long) desc = p.synopses.long;
 		}
 		prog.desc = desc;
 		prog.channel = p.master_brand ? p.master_brand.mid : 'unknown';
 		prog.categories = '';
 		prog.thumbnail = 'http://ichef.bbci.co.uk/images/ic/160x90/'+p.pid+'.jpg';
 		prog.timeadded = Math.floor(new Date()/1000.0);
-		prog.guidance = p.has_guidance;
+		prog.guidance = '';
 		prog.web = 'http://www.bbc.co.uk/programmes/'+p.pid;
-		
+		prog.vpids = '';
+
+		if (p.genre_groupings && p.genre_groupings.genre_group) {
+			for (var gg=0;gg<p.genre_groupings.genre_group.length;gg++) {
+				var genre_group = p.genre_groupings.genre_group[gg];
+				if (genre_group.genres && genre_group.genres.genre) {
+					for (var g=0;g<genre_group.genres.genre.length;g++) {
+						var genre = genre_group.genres.genre[g];
+						prog.categories += (prog.categories ? ',' : '')+genre["$"];
+					}
+				}
+			}
+		}
+
+		if (p.available_versions && p.available_versions.version) {
+			prog.versions = '';
+			for (var v=0;v<p.available_versions.version.length;v++) {
+				var version = p.available_versions.version[v];
+				if (version.pid) prog.vpids += (prog.vpids ? ',' : '') + version.pid;
+
+				if (version.warnings && version.warnings.warning_texts && version.warnings.warning_texts.warning_text) {
+					for (var w=0;w<version.warnings.warning_texts.warning_text.length;w++) {
+						var warning = version.warnings.warning_texts.warning_text[w];
+						if (prog.guidance == '') prog.guidance = warning["$"];
+					}
+				}
+
+				if (version.types && version.types.type) {
+					for (var t=0;t<version.types.type.length;t++) {
+						var type = version.types.type[t];
+						if (type == 'Original') type = 'default';
+						type = type.toLocaleLowerCase();
+						prog.versions += (prog.versions ? ',' : '') + type;
+					}
+				}
+			}
+		}
+
 		updateRow(db, prog);
 	}
 	return index;
@@ -139,7 +164,6 @@ var processResponse = function(obj) {
 	var nextHref = '';
 	if ((obj.nitro.pagination) && (obj.nitro.pagination.next)) {
 		nextHref = obj.nitro.pagination.next.href;
-		//console.log(nextHref);
 	}
 	var pageNo = obj.nitro.results.page;
 	var top = obj.nitro.results.total;
@@ -165,20 +189,20 @@ var processResponse = function(obj) {
 
 function run(db) {
 	// Use bbcparse nitro SDK to read in pages.
-	
+
 	db.run('delete from "data"');
 	gdb = db; //
-	
+
 	var host = 'programmes.api.bbc.com';
 	var path = '/nitro/api/programmes';
-	
+
 	var query = helper.newQuery();
 	query.add(api.fProgrammesMediaSet,'pc',true)
 		.add(api.fProgrammesAvailabilityAvailable)
 		.add(api.fProgrammesAvailabilityEntityTypeEpisode)
-		//.add(api.fProgrammesMediaTypeAudio)
 		.add(api.fProgrammesEntityTypeEpisode)
 		.add(api.fProgrammesPaymentTypeFree)
+		.add(api.mProgrammesGenreGroupings)
 		.add(api.mProgrammesAncestorTitles)
 		.add(api.mProgrammesAvailability)
 		.add(api.mProgrammesAvailableVersions);
