@@ -106,7 +106,8 @@ function persist(db,res) {
 		var prog = {};
 		prog["#index"] = index++;
 		prog.type = p.media_type == 'Audio' ? 'radio' : 'tv'; //TODO podcast
-		prog.name = p.ancestor_titles[0].title;
+		prog.name = '';
+		if (p.ancestor_titles) prog.name = p.ancestor_titles[0].title;
 		prog.pid = p.pid;
 		prog.available = p.updated_time;
 		prog.expires = Math.floor(new Date()/1000.0)+2419200;;
