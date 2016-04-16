@@ -174,7 +174,7 @@ function run(db) {
 	query.add(api.fProgrammesMediaSet,'pc',true)
 		.add(api.fProgrammesAvailabilityAvailable)
 		.add(api.fProgrammesAvailabilityEntityTypeEpisode)
-		.add(api.fProgrammesMediaTypeAudio)
+		//.add(api.fProgrammesMediaTypeAudio)
 		.add(api.fProgrammesEntityTypeEpisode)
 		.add(api.fProgrammesPaymentTypeFree)
 		.add(api.mProgrammesAncestorTitles)
@@ -184,9 +184,11 @@ function run(db) {
 	// parallelize the queries by 36 times
 	var letters = '0123456789abcdefghijklmnopqrstuvwxyz';
 	for (var l in letters) {
-		var lQuery = query.clone();
-		lQuery.add(api.fProgrammesInitialLetter,letters[l]);
-		nitro.make_request(host,path,api_key,lQuery,{Accept:'application/json'},processResponse);
+		if (letters.hasOwnProperty(l)) {
+			var lQuery = query.clone();
+			lQuery.add(api.fProgrammesInitialLetter,letters[l]);
+			nitro.make_request(host,path,api_key,lQuery,{Accept:'application/json'},processResponse);
+		}
 	}
 }
 
