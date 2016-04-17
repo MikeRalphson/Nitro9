@@ -11,6 +11,7 @@ var domain = '/nitro/api';
 var feed = '/programmes'
 var index = 10000;
 
+// when we next bump the bbcparse dependency we can call this from the SDK
 function iso8601durationToSeconds(input) {
 	var reptms = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
 	var hours = 0, minutes = 0, seconds = 0, totalseconds;
@@ -210,8 +211,8 @@ function run(db) {
 	for (var l in letters) {
 		if (letters.hasOwnProperty(l)) {
 			var lQuery = query.clone();
-			lQuery.add(api.fProgrammesInitialLetter,letters[l]);
-			nitro.make_request(host,path,api_key,lQuery,{Accept:'application/json'},processResponse);
+			lQuery.add(api.fProgrammesInitialLetterStrict,letters[l]);
+			nitro.make_request(host,path,api_key,lQuery,{},processResponse);
 		}
 	}
 }

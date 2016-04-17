@@ -6,6 +6,8 @@ This is a scraper that runs on [Morph](https://morph.io). Please read [the Morph
 
 It can also be run locally.
 
+Set an environment variable called `MORPH_API_KEY` to your Nitro API key.
+
 Usage: `node scraper.js`
 
 Output is an sqlite3 database containing one table, "data":
