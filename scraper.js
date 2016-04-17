@@ -11,21 +11,6 @@ var domain = '/nitro/api';
 var feed = '/programmes'
 var index = 10000;
 
-// when we next bump the bbcparse dependency we can call this from the SDK
-function iso8601durationToSeconds(input) {
-	var reptms = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/;
-	var hours = 0, minutes = 0, seconds = 0, totalseconds;
-
-	if (reptms.test(input)) {
-		var matches = reptms.exec(input);
-		if (matches[1]) hours = Number(matches[1]);
-		if (matches[2]) minutes = Number(matches[2]);
-		if (matches[3]) seconds = Number(matches[3]);
-		totalseconds = hours * 3600  + minutes * 60 + seconds;
-	}
-	return totalseconds;
-}
-
 function initDatabase(callback) {
 	// Set up sqlite database.
 	var db = new sqlite3.Database("data.sqlite");
@@ -93,8 +78,7 @@ function persist(db,res) {
 		var prog = {};
 		prog["#index"] = index++;
 		prog.type = p.media_type ? (p.media_type == 'Audio' ? 'radio' : 'tv') : 'unknown';
-		prog.name = '';
-		if (p.ancestor_titles) prog.name = p.ancestor_titles[0].title;
+		prog.name = p.ancestor_titles ? p.ancestor_titles[0].title : p.title;
 		prog.pid = p.pid;
 		prog.available = p.updated_time;
 		prog.expires = Math.floor(new Date()/1000.0)+2419200;;
@@ -102,7 +86,7 @@ function persist(db,res) {
 		prog.episodenum = (p.episode_of && p.episode_of.position ? p.episode_of.position : '');
 		prog.seriesnum = '';
 		prog.versions = 'default';
-		prog.duration = iso8601durationToSeconds(p.available_versions.version[0].duration);
+		prog.duration = helper.iso8601durationToSeconds(p.available_versions.version[0].duration);
 		var desc = '';
 		if (p.synopses) {
 			if (p.synopses.short) desc = p.synopses.short
@@ -127,6 +111,13 @@ function persist(db,res) {
 						prog.categories += (prog.categories ? ',' : '')+genre["$"];
 					}
 				}
+			}
+		}
+
+		if (p.programme_formats && p.programme_formats.format) {
+			for (var f=0;f<p.programme_formats.format.length;f++) {
+				var format = p.programme_formats.format[f]
+				prog.categories += (prog.categories ? ',' : '')+format["$"];
 			}
 		}
 
@@ -189,32 +180,39 @@ var processResponse = function(obj) {
 function run(db) {
 	// Use bbcparse nitro SDK to read in pages.
 
-	db.run('delete from "data"');
-	gdb = db; //
-
+	gdb = db; // to save having to pass it around callbacks
 	var host = 'programmes.api.bbc.com';
 	var path = '/nitro/api/programmes';
 
-	var query = helper.newQuery();
-	query.add(api.fProgrammesMediaSet,'pc',true)
-		.add(api.fProgrammesAvailabilityAvailable)
-		.add(api.fProgrammesAvailabilityEntityTypeEpisode)
-		.add(api.fProgrammesEntityTypeEpisode)
-		.add(api.fProgrammesPaymentTypeFree)
-		.add(api.mProgrammesGenreGroupings)
-		.add(api.mProgrammesAncestorTitles)
-		.add(api.mProgrammesAvailability)
-		.add(api.mProgrammesAvailableVersions);
+	nitro.ping(host,api_key,{},function(obj){
+		if (obj.nitro.results) {
+			db.run('delete from "data"');
 
-	// parallelize the queries by 36 times
-	var letters = '0123456789abcdefghijklmnopqrstuvwxyz';
-	for (var l in letters) {
-		if (letters.hasOwnProperty(l)) {
-			var lQuery = query.clone();
-			lQuery.add(api.fProgrammesInitialLetterStrict,letters[l]);
-			nitro.make_request(host,path,api_key,lQuery,{},processResponse);
+			var query = helper.newQuery();
+			query.add(api.fProgrammesMediaSet,'pc',true)
+				.add(api.fProgrammesAvailabilityAvailable)
+				.add(api.fProgrammesAvailabilityEntityTypeEpisode)
+				.add(api.fProgrammesEntityTypeEpisode)
+				.add(api.fProgrammesPaymentTypeFree)
+				.add(api.mProgrammesGenreGroupings)
+				.add(api.mProgrammesAncestorTitles)
+				.add(api.mProgrammesAvailability)
+				.add(api.mProgrammesAvailableVersions);
+
+			// parallelize the queries by 36 times
+			var letters = '0123456789abcdefghijklmnopqrstuvwxyz';
+			for (var l in letters) {
+				if (letters.hasOwnProperty(l)) {
+					var lQuery = query.clone();
+					lQuery.add(api.fProgrammesInitialLetterStrict,letters[l]);
+					nitro.make_request(host,path,api_key,lQuery,{},processResponse);
+				}
+			}
 		}
-	}
+		else {
+			console.log('Could not nitro.ping '+host);
+		}
+	});
 }
 
 //----------------------------------------------------------------------------
