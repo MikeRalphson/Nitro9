@@ -77,7 +77,7 @@ function persist(db,res) {
 		var p = res.items[i];
 		var prog = {};
 		prog["#index"] = index++;
-		prog.type = p.media_type ? (p.media_type == 'Audio' ? 'radio' : 'tv') : 'unknown';
+		prog.type = p.media_type ? (p.media_type == 'Audio' ? 'radio' : 'tv') : 'radio'; // all unknown seem to be R3/R4/WS
 		prog.name = p.ancestor_titles ? p.ancestor_titles[0].title : p.title;
 		prog.pid = p.pid;
 		prog.available = p.updated_time;
