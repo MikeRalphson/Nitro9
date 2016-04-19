@@ -1,6 +1,5 @@
 # Ignore output of scraper
-data.sqlite
-data.sqlite-journal
-Nitro9.sqlite
+*.sqlite
+*.sqlite-journal
 
 node_modules

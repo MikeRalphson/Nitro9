@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/MikeRalphson/Nitro9#readme",
   "dependencies": {
-    "bbcparse": "^1.1.1",
+    "bbcparse": "^1.1.2",
     "sqlite3": "latest"
   }
 }
