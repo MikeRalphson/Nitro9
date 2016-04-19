@@ -10,6 +10,7 @@ var gdb;
 var host = 'programmes.api.bbc.com';
 var index = 10000;
 var rows = 0;
+var target = 1000;
 
 function initDatabase(callback) {
 	// Set up sqlite database.
@@ -203,8 +204,10 @@ var processResponse = function(obj) {
 	var last = Math.ceil(top/obj.nitro.results.page_size);
 
 	var res = obj.nitro.results;
-	process.stdout.write('\rIn-flight: '+nitro.getRequests()+' Rate-limit: '+nitro.getRateLimitEvents()+' Rows: '+rows+' ');
-
+	if (rows >= target) {
+		process.stdout.write('\rIn-flight: '+nitro.getRequests()+' Rate-limit: '+nitro.getRateLimitEvents()+' Rows: '+rows+' ');
+		target += 1000;
+	}
 	persist(gdb,res);
 
 	var dest = {};
