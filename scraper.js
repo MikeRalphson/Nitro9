@@ -98,6 +98,7 @@ function persist(db,res) {
 					.add(api.mProgrammesAvailableVersions);
 				nitro.make_request(host,api.nitroProgrammes,api_key,query,{},processResponse);
 			}
+			// ignore clips
 		}
 		else {
 			var prog = {};
