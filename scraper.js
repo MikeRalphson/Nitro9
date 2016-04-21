@@ -203,6 +203,13 @@ function persist(db,res,parent) {
 				}
 			}
 
+			if ((prog.available == p.updated_time) && parent && parent.scheduled_time) {
+				prog.available = parent.scheduled_time.start;
+			}
+			if ((prog.available == p.updated_time) && parent && parent.published_time) {
+				prog.available = parent.published_time.start;
+			}
+
 			progs.push(prog);
 
 		}
@@ -253,22 +260,34 @@ function processSchedule(obj) {
 	for (var i in obj.nitro.results.items) {
 		var bcast = obj.nitro.results.items[i];
 
+		var pid;
+
 		for (var b in bcast.broadcast_of) {
 			var of = bcast.broadcast_of[b];
 			if (of.result_type == 'episode') {
-				var query = helper.newQuery();
-				query.add(api.fProgrammesPid,of.pid,true)
-					.add(api.fProgrammesAvailabilityAvailable)
-					.add(api.fProgrammesAvailabilityPending)
-					.add(api.mProgrammesGenreGroupings)
-					.add(api.mProgrammesAncestorTitles)
-					.add(api.mProgrammesAvailability)
-					.add(api.mProgrammesAvailableVersions);
-				if (!abort) {
-					var settings = {};
-					settings.payload = bcast;
-					nitro.make_request(host,api.nitroProgrammes,api_key,query,settings,processResponse);
-				}
+				pid = of.pid;
+			}
+		}
+		for (var w in bcast.window_of) {
+			var of = bcast.window_of[w];
+			if (of.type == 'episode') {
+				pid = of.pid;
+			}
+		}
+
+		if (pid) {
+			var query = helper.newQuery();
+			query.add(api.fProgrammesPid,pid,true)
+				.add(api.fProgrammesAvailabilityAvailable)
+				.add(api.fProgrammesAvailabilityPending)
+				.add(api.mProgrammesGenreGroupings)
+				.add(api.mProgrammesAncestorTitles)
+				.add(api.mProgrammesAvailability)
+				.add(api.mProgrammesAvailableVersions);
+			if (!abort) {
+				var settings = {};
+				settings.payload = bcast;
+				nitro.make_request(host,api.nitroProgrammes,api_key,query,settings,processResponse);
 			}
 		}
 	}
