@@ -6,11 +6,13 @@ var helper = require('bbcparse/apiHelper.js');
 var nitro = require('bbcparse/nitroCommon.js');
 
 var api_key = process.env.MORPH_API_KEY;
+var production = process.env.NPM_CONFIG_PRODUCTION; // true if running on morph.io
 var gdb;
 var host = 'programmes.api.bbc.com';
 var index = 100000;
 var rows = 0;
-var target = 1000;
+var increment = production ? 1000 :  100;
+var target = increment;
 var abort = false;
 
 function initDatabase(callback) {
@@ -219,10 +221,9 @@ var processResponse = function(obj,payload) {
 	var last = Math.ceil(top/obj.nitro.results.page_size);
 
 	var res = obj.nitro.results;
-	var reqs = nitro.getRequests();
-	if ((rows >= target) || (abort)) {
-		process.stdout.write('\rIn-flight: '+reqs+' Rate-limit: '+nitro.getRateLimitEvents()+' Rows: '+rows+' ');
-		target += 1000; // doesn't matter about target if we're aborting
+	if ((rows >= target) || abort) {
+		process.stdout.write('\rIn-flight: '+nitro.getRequests()+' Rate-limit: '+nitro.getRateLimitEvents()+' Rows: '+rows+' ');
+		target += increment; // doesn't matter about target if we're aborting
 	}
 	persist(gdb,res,payload);
 
@@ -235,7 +236,7 @@ var processResponse = function(obj,payload) {
 	// if we need to go somewhere else, e.g. after all pages received set callback and/or path
 	nitro.setReturn(dest);
 
-	if (reqs<=1) {
+	if (nitro.getRequests()<=1) {
 		cleanup();
 	}
 
@@ -249,6 +250,7 @@ function run(db) {
 
 	nitro.ping(host,api_key,{},function(obj){
 		if (obj.nitro.results) {
+			console.log('Removing expired items...');
 			db.run('DELETE FROM "data" WHERE expires < strftime("%s","now")');
 
 			var query = helper.newQuery();
