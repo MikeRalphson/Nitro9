@@ -192,6 +192,9 @@ function persist(db,res,parent) {
 					if (version.availabilities && version.availabilities.availability) {
 						for (var a=0;a<version.availabilities.availability.length;a++) {
 							var availability = version.availabilities.availability[a];
+							if (availability.scheduled_start) {
+								prog.available = availability.scheduled_start;
+							}
 							if (availability.scheduled_end) {
 								prog.expires = Math.floor(new Date(availability.scheduled_end)/1000.0);
 							}
@@ -256,11 +259,16 @@ function processSchedule(obj) {
 				var query = helper.newQuery();
 				query.add(api.fProgrammesPid,of.pid,true)
 					.add(api.fProgrammesAvailabilityAvailable)
+					.add(api.fProgrammesAvailabilityPending)
 					.add(api.mProgrammesGenreGroupings)
 					.add(api.mProgrammesAncestorTitles)
 					.add(api.mProgrammesAvailability)
 					.add(api.mProgrammesAvailableVersions);
-				if (!abort) nitro.make_request(host,api.nitroProgrammes,api_key,query,{},processResponse);
+				if (!abort) {
+					var settings = {};
+					settings.payload = bcast;
+					nitro.make_request(host,api.nitroProgrammes,api_key,query,settings,processResponse);
+				}
 			}
 		}
 	}
