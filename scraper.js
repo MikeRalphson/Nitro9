@@ -7,6 +7,7 @@ var nitro = require('bbcparse/nitroCommon.js');
 
 var api_key = process.env.MORPH_API_KEY;
 var production = process.env.NPM_CONFIG_PRODUCTION; // true if running on morph.io
+var rebuild = process.env.MORPH_REBUILD;
 var gdb;
 var host = 'programmes.api.bbc.com';
 var index = 100000;
@@ -225,6 +226,7 @@ var processResponse = function(obj,payload) {
 		process.stdout.write('\rIn-flight: '+nitro.getRequests()+' Rate-limit: '+nitro.getRateLimitEvents()+' Rows: '+rows+' ');
 		target += increment; // doesn't matter about target if we're aborting
 	}
+
 	persist(gdb,res,payload);
 
 	var dest = {};
@@ -243,6 +245,51 @@ var processResponse = function(obj,payload) {
 	return true;
 }
 
+function processSchedule(obj) {
+	//console.log(JSON.stringify(obj,null,2));
+	for (var i in obj.nitro.results.items) {
+		var bcast = obj.nitro.results.items[i];
+
+		for (var b in bcast.broadcast_of) {
+			var of = bcast.broadcast_of[b];
+			if (of.result_type == 'episode') {
+				var query = helper.newQuery();
+				query.add(api.fProgrammesPid,of.pid,true)
+					.add(api.fProgrammesAvailabilityAvailable)
+					.add(api.mProgrammesGenreGroupings)
+					.add(api.mProgrammesAncestorTitles)
+					.add(api.mProgrammesAvailability)
+					.add(api.mProgrammesAvailableVersions);
+				if (!abort) nitro.make_request(host,api.nitroProgrammes,api_key,query,{},processResponse);
+			}
+		}
+	}
+
+	var nextHref = '';
+	if ((obj.nitro.pagination) && (obj.nitro.pagination.next)) {
+		nextHref = obj.nitro.pagination.next.href;
+	}
+	var dest = {};
+	if (nextHref) {
+		dest.path = api.nitroSchedules;
+		dest.query = helper.queryFrom(nextHref,true);
+		dest.callback = processSchedule;
+	}
+	nitro.setReturn(dest);
+	return true;
+}
+
+function buildScheduleFrom(start) {
+	//increment = 10;
+	//target = 10;
+	var now = new Date().toISOString();
+	console.log(start+' to '+now);
+	var query = helper.newQuery();
+	query.add(api.fSchedulesStartFrom,start,true)
+		.add(api.fSchedulesEndTo,now);
+	nitro.make_request(host,api.nitroSchedules,api_key,query,{},processSchedule);
+}
+
 function run(db) {
 	// Use bbcparse nitro SDK to read in pages.
 
@@ -253,26 +300,36 @@ function run(db) {
 			console.log('Removing expired items...');
 			db.run('DELETE FROM "data" WHERE expires < strftime("%s","now")');
 
-			var query = helper.newQuery();
-			query.add(api.fProgrammesMediaSet,'pc',true)
-				.add(api.fProgrammesAvailabilityAvailable)
-				.add(api.fProgrammesAvailabilityEntityTypeEpisode)
-				.add(api.fProgrammesPaymentTypeFree)
-				.add(api.mProgrammesGenreGroupings)
-				.add(api.mProgrammesAncestorTitles)
-				.add(api.mProgrammesAvailability)
-				.add(api.mProgrammesAvailableVersions);
-
-			console.log('Firing initial queries...');
-			// parallelize the queries by 36 times
-			var letters = '0123456789abcdefghijklmnopqrstuvwxyz';
-			for (var l in letters) {
-				if (letters.hasOwnProperty(l)) {
-					var lQuery = query.clone();
-					lQuery.add(api.fProgrammesInitialLetterStrict,letters[l]);
-					nitro.make_request(host,api.nitroProgrammes,api_key,lQuery,{},processResponse);
+			db.each("SELECT max(available) AS start FROM data", function(err, row) {
+				if (err) {
+					console.log(err);
 				}
-			}
+				else if (row.start && !rebuild) {
+					buildScheduleFrom(row.start);
+				}
+				else {
+					var query = helper.newQuery();
+					query.add(api.fProgrammesMediaSet,'pc',true)
+						.add(api.fProgrammesAvailabilityAvailable)
+						.add(api.fProgrammesAvailabilityEntityTypeEpisode)
+						.add(api.fProgrammesPaymentTypeFree)
+						.add(api.mProgrammesGenreGroupings)
+						.add(api.mProgrammesAncestorTitles)
+						.add(api.mProgrammesAvailability)
+						.add(api.mProgrammesAvailableVersions);
+
+					console.log('Firing initial queries...');
+					// parallelize the queries by 36 times
+					var letters = '0123456789abcdefghijklmnopqrstuvwxyz';
+					for (var l in letters) {
+						if (letters.hasOwnProperty(l)) {
+							var lQuery = query.clone();
+							lQuery.add(api.fProgrammesInitialLetterStrict,letters[l]);
+							nitro.make_request(host,api.nitroProgrammes,api_key,lQuery,{},processResponse);
+						}
+					}
+				}
+			});
 		}
 		else {
 			console.log('Could not nitro.ping '+host);
@@ -284,7 +341,7 @@ function run(db) {
 
 process.on('exit', function(code) {
 	gdb.close();
-	console.log('Exiting');
+	console.log('Exiting with '+rows+' rows processed');
 });
 
 process.on('SIGINT', function () {
