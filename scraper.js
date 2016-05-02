@@ -8,6 +8,8 @@ var nitro = require('bbcparse/nitroCommon.js');
 var api_key = process.env.MORPH_API_KEY;
 var production = process.env.NPM_CONFIG_PRODUCTION; // true if running on morph.io
 var rebuild = process.env.MORPH_REBUILD;
+var oneoff = process.env.MORPH_ONE_OFF;
+
 var gdb;
 var host = 'programmes.api.bbc.com';
 var index = 100000;
@@ -52,6 +54,10 @@ function initDatabase(callback) {
 	console.log('Prepping database...');
 	db.serialize(function() {
 		db.run('CREATE TABLE IF NOT EXISTS data ('+fieldStr+')');
+		if (oneoff) {
+			console.log(oneoff);
+			db.run(oneoff);
+		}
 		callback(db);
 	});
 }
@@ -208,6 +214,10 @@ function persist(db,res,parent) {
 			}
 			if ((prog.available == p.updated_time) && parent && parent.published_time) {
 				prog.available = parent.published_time.start;
+			}
+
+			if (Date(prog.available) > new Date()) {
+				prog.available = new Date();
 			}
 
 			progs.push(prog);
