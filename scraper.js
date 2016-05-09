@@ -17,6 +17,7 @@ var rows = 0;
 var increment = production ? 1000 :  100;
 var target = increment;
 var abort = false;
+var now = new Date();
 
 function initDatabase(callback) {
 	// Set up sqlite database.
@@ -216,8 +217,8 @@ function persist(db,res,parent) {
 				prog.available = parent.published_time.start;
 			}
 
-			if (Date(prog.available) > new Date()) {
-				prog.available = new Date();
+			if (new Date(prog.available) > now) {
+				prog.available = now;
 			}
 
 			progs.push(prog);
