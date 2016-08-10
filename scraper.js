@@ -2,8 +2,7 @@
 
 var sqlite3 = require("sqlite3").verbose();
 var api = require('bbcparse/nitroApi/api.js');
-var helper = require('bbcparse/apiHelper.js');
-var nitro = require('bbcparse/nitroCommon.js');
+var nitro = require('bbcparse/nitroSdk.js');
 
 var api_key = process.env.MORPH_API_KEY;
 var production = process.env.NPM_CONFIG_PRODUCTION; // true if running on morph.io
@@ -108,7 +107,7 @@ function persist(db,res,parent) {
 
 		if (p.item_type != 'episode') {
 			if ((p.item_type == 'brand') || (p.item_type == 'series')) {
-				var query = helper.newQuery();
+				var query = nitro.newQuery();
 				query.add(api.fProgrammesMediaSet,'pc',true)
 					.add(api.fProgrammesAvailabilityAvailable)
 					.add(api.fProgrammesAvailabilityEntityTypeEpisode)
@@ -138,7 +137,7 @@ function persist(db,res,parent) {
 			prog.versions = 'default';
 			prog.duration = '';
 			if ((p.available_versions) && (p.available_versions.version) && (p.available_versions.version.length>0)) {
-				prog.duration = helper.iso8601durationToSeconds(p.available_versions.version[0].duration);
+				prog.duration = nitro.iso8601durationToSeconds(p.available_versions.version[0].duration);
 			}
 			var desc = '';
 			if (p.synopses) {
@@ -253,7 +252,7 @@ var processResponse = function(obj,payload) {
 	var dest = {};
 	if ((pageNo < last) && (!abort)) {
 		dest.path = api.nitroProgrammes;
-		dest.query = helper.queryFrom(nextHref,true);
+		dest.query = nitro.queryFrom(nextHref,true);
 		dest.callback = processResponse;
 	}
 	// if we need to go somewhere else, e.g. after all pages received set callback and/or path
@@ -287,7 +286,7 @@ function processSchedule(obj) {
 		}
 
 		if (pid) {
-			var query = helper.newQuery();
+			var query = nitro.newQuery();
 			query.add(api.fProgrammesPid,pid,true)
 				.add(api.fProgrammesAvailabilityAvailable)
 				.add(api.fProgrammesAvailabilityPending)
@@ -310,7 +309,7 @@ function processSchedule(obj) {
 	var dest = {};
 	if (nextHref) {
 		dest.path = api.nitroSchedules;
-		dest.query = helper.queryFrom(nextHref,true);
+		dest.query = nitro.queryFrom(nextHref,true);
 		dest.callback = processSchedule;
 	}
 	nitro.setReturn(dest);
@@ -322,7 +321,7 @@ function buildScheduleFrom(start) {
 	//target = 10;
 	var now = new Date().toISOString();
 	console.log(start+' to '+now);
-	var query = helper.newQuery();
+	var query = nitro.newQuery();
 	query.add(api.fSchedulesStartFrom,start,true)
 		.add(api.fSchedulesEndTo,now);
 	nitro.make_request(host,api.nitroSchedules,api_key,query,{},processSchedule);
@@ -334,7 +333,7 @@ function run(db) {
 	gdb = db; // to save having to pass it around callbacks
 
 	nitro.ping(host,api_key,{},function(obj){
-		if (obj.nitro.results) {
+		if (obj.nitro) {
 			console.log('Removing expired items...');
 			db.run('DELETE FROM "data" WHERE expires < strftime("%s","now")');
 
@@ -346,7 +345,7 @@ function run(db) {
 					buildScheduleFrom(row.start);
 				}
 				else {
-					var query = helper.newQuery();
+					var query = nitro.newQuery();
 					query.add(api.fProgrammesMediaSet,'pc',true)
 						.add(api.fProgrammesAvailabilityAvailable)
 						.add(api.fProgrammesAvailabilityEntityTypeEpisode)
@@ -371,6 +370,7 @@ function run(db) {
 		}
 		else {
 			console.log('Could not nitro.ping '+host);
+			console.log(JSON.stringify(obj,null,2));
 		}
 	});
 }

@@ -1,5 +1,4 @@
-var nitro = require('bbcparse/nitroCommon');
-var helper = require('bbcparse/apiHelper');
+var nitro = require('bbcparse/nitroSdk');
 
 var key = process.env['MORPH_QUERY_KEY'];
 
@@ -10,7 +9,7 @@ for (var a=2;a<process.argv.length;a++) {
 
 console.log(sql);
 
-var query = helper.newQuery();
+var query = nitro.newQuery();
 query.add('key',key);
 query.add('query',sql);
 
