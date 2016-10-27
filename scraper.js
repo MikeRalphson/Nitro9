@@ -332,7 +332,9 @@ function run(db) {
 
 	gdb = db; // to save having to pass it around callbacks
 
+    console.log('Pinging the host...');
 	nitro.ping(host,api_key,{},function(obj){
+	    console.log('Got a ping ok');
 		if (obj.nitro) {
 			console.log('Removing expired items...');
 			db.run('DELETE FROM "data" WHERE expires < strftime("%s","now")');
@@ -380,6 +382,7 @@ function run(db) {
 process.on('exit', function(code) {
 	gdb.close();
 	console.log('Exiting with '+rows+' rows processed');
+	if (rows < 1) process.exitCode = 1;
 });
 
 process.on('SIGINT', function () {
